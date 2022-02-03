@@ -15,25 +15,42 @@ ui <- fluidPage(
   # Sidebar with a slider input for number of bins 
   sidebarLayout(
     sidebarPanel(
-      checkboxGroupInput(inputId = "filter",
-                         label = "Location",
-                         choices = c("Braddock", "Brentwood", "Carnegie", "Castle Shannon", 
-                                     "Clairton", "Dormont", "East Pittsburgh", "Edgewood",
-                                     "Etna", "Green Tree", "Homestead", "Indiana",
-                                     "McKeesport", "Millvale", "Monroeville", "Moon",
-                                     "Mount Oliver", "Pitcairn", "Pittsburgh", "Robinson", 
-                                     "Ross", "Scott", "Scott/Carnegie", "Shaler", 
-                                     "South Park", "Swissvale", "White Oak", "Wilkinsburg",
-                                     "Unknown"),
-                         selected = c("Braddock", "Brentwood", "Carnegie", "Castle Shannon", 
-                                      "Clairton", "Dormont", "East Pittsburgh", "Edgewood",
-                                      "Etna", "Green Tree", "Homestead", "Indiana",
-                                      "McKeesport", "Millvale", "Monroeville", "Moon",
-                                      "Mount Oliver", "Pitcairn", "Pittsburgh", "Robinson", 
-                                      "Ross", "Scott", "Scott/Carnegie", "Shaler", 
-                                      "South Park", "Swissvale", "White Oak", "Wilkinsburg",
-                                      "Unknown")),
-      downloadButton(outputId = "download", label = "Download")
+      selectInput(inputId = "fill_by",
+                         label = "Fill histograms by:",
+                         choices = c("No fill", "Location")),
+      hr(),
+      
+      checkboxInput(inputId = "display_locations",
+                   label = "Display and filter locations"),
+      
+      conditionalPanel(
+        condition = "input.display_locations == 1",
+        checkboxGroupInput(inputId = "filter",
+                           label = "Locations",
+                           choices = c("Braddock", "Brentwood", "Carnegie", "Castle Shannon", 
+                                       "Clairton", "Dormont", "East Pittsburgh", "Edgewood",
+                                       "Etna", "Green Tree", "Homestead", "Indiana",
+                                       "McKeesport", "Millvale", "Monroeville", "Moon",
+                                       "Mount Oliver", "Pitcairn", "Pittsburgh", "Robinson", 
+                                       "Ross", "Scott", "Scott/Carnegie", "Shaler", 
+                                       "South Park", "Swissvale", "White Oak", "Wilkinsburg",
+                                       "Unknown"),
+                           selected = c("Braddock", "Brentwood", "Carnegie", "Castle Shannon", 
+                                        "Clairton", "Dormont", "East Pittsburgh", "Edgewood",
+                                        "Etna", "Green Tree", "Homestead", "Indiana",
+                                        "McKeesport", "Millvale", "Monroeville", "Moon",
+                                        "Mount Oliver", "Pitcairn", "Pittsburgh", "Robinson", 
+                                        "Ross", "Scott", "Scott/Carnegie", "Shaler", 
+                                        "South Park", "Swissvale", "White Oak", "Wilkinsburg",
+                                        "Unknown")
+                           )
+
+      ),
+      
+      hr(),
+      
+      downloadButton(outputId = "download", label = "Download data"),
+      
     ),
     
     
