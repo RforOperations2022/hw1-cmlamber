@@ -15,7 +15,7 @@ ui <- fluidPage(
   theme = shinythemes::shinytheme("cosmo"),
   
   # Application title-----------------------------------------------------------
-  titlePanel("Allegheny County's Lots to Love Project"),
+  titlePanel("Allegheny County's Lots to Love Projects"),
   
   # Sidebar layout with input and output definitions----------------------------
   sidebarLayout(
@@ -34,8 +34,20 @@ ui <- fluidPage(
         # Spacing---------------------------------------------------------------
         hr()),
       
+      # Input: filter by project type(s)----------------------------------------
+      checkboxGroupInput(inputId = "type.filter",
+                         label = "Filter by project type(s):",
+                         choices = c("Flower Garden", "Food Garden",
+                                     "Park Parklet", "Trail Pathway",
+                                     "Not specified"),
+                         selected = c("Flower Garden", "Food Garden",
+                                     "Park Parklet", "Trail Pathway",
+                                     "Not specified")),
+      
+      hr(),
+      
       # Input: filter by location(s)--------------------------------------------
-      selectInput(inputId = "filter",
+      selectInput(inputId = "location.filter",
                            label = "Filter by location(s)",
                            choices = c("Braddock", "Brentwood", "Carnegie", "Castle Shannon", 
                                        "Clairton", "Dormont", "East Pittsburgh", "Edgewood",
@@ -57,21 +69,22 @@ ui <- fluidPage(
       hr(),
       
       # Download button---------------------------------------------------------
-      downloadButton(outputId = "download", label = "Download data"),
+      downloadButton(outputId = "download", label = "Download filtered data"),
       
     ),
     
     # Output as tabs:-----------------------------------------------------------
     mainPanel(
       tabsetPanel(id = "tabs",
+        # Tab 1: Introduction---------------------------------------------------
         tabPanel("Introduction", textOutput("intro.text")),
-        # Tab 1: show bar graph with flexible x-axis----------------------------
+        # Tab 2: show bar graph with flexible x-axis----------------------------
         tabPanel("Bar Graph", plotOutput(outputId = "flexgraph")),
-        # Tab 2: show word cloud based on Partner data--------------------------
+        # Tab 3: show word cloud based on Partner data--------------------------
         tabPanel("Partner Word Cloud", plotOutput(outputId = "wordcloud")),
-        # Tab 3: show line chart------------------------------------------------
+        # Tab 4: show line chart------------------------------------------------
         tabPanel("Projects Implemented Over Time", plotOutput(outputId = "lineplot")),
-        # Tab 4: show data table------------------------------------------------
+        # Tab 5: show data table------------------------------------------------
         tabPanel("Data Table", dataTableOutput(outputId = "table"))
       )
     )
@@ -83,8 +96,9 @@ server <- function(input, output) {
   
   # Create subset a subset of data filtering for location-----------------------
   lots.subset <- reactive({
-    req(input$filter) # ensure availablity of value before proceeding
-    filter(lots, location %in% input$filter) })
+    lots %>%
+    filter(location %in% input$location.filter &
+             type %in% input$type.filter) })
   
   # Create reactive based on lots.subset for rendering bar graph----------------  
   agg.subset <- reactive({
@@ -93,10 +107,12 @@ server <- function(input, output) {
       summarize(count = n())
   })
 
+  # Create text for the introduction tab of the app-----------------------------
   output$intro.text <- renderText("Lots to Love is a guide for community 
                                   organizations and residents who are 
-                                  interested in transforming vacant lots 
-                                  into well-loved spaces. This data includes 
+                                  interested in transforming vacant lots in
+                                  Allegheny County into well-loved spaces. 
+                                  This data includes 
                                   vacant lot projects that are implemented, 
                                   in progress, or just an idea. Residents can 
                                   log their projects through Lots to Love and 
@@ -113,7 +129,8 @@ server <- function(input, output) {
       geom_bar(stat = "identity", aes_string(x = input$x), fill = "cornflowerblue") +
       theme(axis.text.x = element_text(angle = 45, hjust=1, size = 13)) + 
       labs(x = toTitleCase(str_replace_all(input$x, "_", " ")), 
-                           y = "Number Of Projects")
+                           y = "Number of Projects",
+           title = paste("Projects by", toTitleCase(str_replace_all(input$x, "_", " "))))
   })
   
   # Create a new data frame, grouping subset by partners------------------------
@@ -141,7 +158,7 @@ server <- function(input, output) {
     
     # Create line chart based on year_implemented and project count-------------
     ggplot(data = by.year, aes(x = year_implemented, y = year.count)) +
-    geom_point() +
+    geom_point(size = 3) +
     theme(axis.text.x = element_text(angle = 45, hjust=1)) +
     theme_bw() +
     labs(x = "Year Implemented", y = "Number of Projects Implemented",
@@ -150,7 +167,7 @@ server <- function(input, output) {
   
   # Render data table of lots.subset--------------------------------------------
   output$table <- DT::renderDataTable({
-    DT::datatable(data = lots.subset()[,c(2,3,4,5,6,7,8,9,11,21,22)],
+    DT::datatable(data = lots.subset()[,c(2,3,4,5,6,7,8,9,21,22)],
                   rownames = FALSE)
     
   })
