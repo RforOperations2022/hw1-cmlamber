@@ -50,21 +50,27 @@ ui <- fluidPage(
       # Input: filter by location(s)--------------------------------------------
       selectInput(inputId = "location.filter",
                            label = "Filter by location(s)",
-                           choices = c("Braddock", "Brentwood", "Carnegie", "Castle Shannon", 
-                                       "Clairton", "Dormont", "East Pittsburgh", "Edgewood",
-                                       "Etna", "Green Tree", "Homestead", "Indiana",
-                                       "McKeesport", "Millvale", "Monroeville", "Moon",
-                                       "Mount Oliver", "Pitcairn", "Pittsburgh", "Robinson", 
-                                       "Ross", "Scott", "Scott/Carnegie", "Shaler", 
-                                       "South Park", "Swissvale", "White Oak", "Wilkinsburg",
+                           choices = c("Braddock", "Brentwood", "Carnegie", 
+                                       "Castle Shannon", "Clairton", "Dormont", 
+                                       "East Pittsburgh", "Edgewood",
+                                       "Etna", "Green Tree", "Homestead", 
+                                       "Indiana", "McKeesport", "Millvale", 
+                                       "Monroeville", "Moon",
+                                       "Mount Oliver", "Pitcairn", "Pittsburgh", 
+                                       "Robinson", "Ross", "Scott", 
+                                       "Scott/Carnegie", "Shaler", "South Park", 
+                                       "Swissvale", "White Oak", "Wilkinsburg",
                                        "Unknown"),
-                           selected = c("Braddock", "Brentwood", "Carnegie", "Castle Shannon", 
-                                       "Clairton", "Dormont", "East Pittsburgh", "Edgewood",
-                                        "Etna", "Green Tree", "Homestead", "Indiana",
-                                        "McKeesport", "Millvale", "Monroeville", "Moon",
-                                        "Mount Oliver", "Pitcairn", "Pittsburgh", "Robinson", 
-                                        "Ross", "Scott", "Scott/Carnegie", "Shaler", 
-                                        "South Park", "Swissvale", "White Oak", "Wilkinsburg",
+                           selected = c("Braddock", "Brentwood", "Carnegie", 
+                                        "Castle Shannon", "Clairton", "Dormont", 
+                                        "East Pittsburgh", "Edgewood",
+                                        "Etna", "Green Tree", "Homestead", 
+                                        "Indiana", "McKeesport", "Millvale", 
+                                        "Monroeville", "Moon",
+                                        "Mount Oliver", "Pitcairn", "Pittsburgh", 
+                                        "Robinson", "Ross", "Scott", 
+                                        "Scott/Carnegie", "Shaler", "South Park", 
+                                        "Swissvale", "White Oak", "Wilkinsburg",
                                         "Unknown"), multiple = TRUE),
       
       hr(),
@@ -84,7 +90,8 @@ ui <- fluidPage(
         # Tab 3: show word cloud based on Partner data--------------------------
         tabPanel("Partner Word Cloud", plotOutput(outputId = "wordcloud")),
         # Tab 4: show line chart------------------------------------------------
-        tabPanel("Projects Implemented Over Time", plotOutput(outputId = "lineplot")),
+        tabPanel("Projects Implemented Over Time", 
+                 plotOutput(outputId = "lineplot")),
         # Tab 5: show data table------------------------------------------------
         tabPanel("Data Table", dataTableOutput(outputId = "table"))
       )
@@ -127,22 +134,23 @@ server <- function(input, output) {
   # Create a bar graph based on aggregated subset-------------------------------
   output$flexgraph <- renderPlot({
     ggplot(data = agg.subset(), aes(y = count)) +
-      geom_bar(stat = "identity", aes_string(x = input$x), fill = "cornflowerblue") +
+      geom_bar(stat = "identity", aes_string(x = input$x), 
+               fill = "cornflowerblue") +
       theme(axis.text.x = element_text(angle = 45, hjust=1, size = 13)) + 
       labs(x = toTitleCase(str_replace_all(input$x, "_", " ")), 
                            y = "Number of Projects",
-           title = paste("Projects by", toTitleCase(str_replace_all(input$x, "_", " "))))
+           title = paste("Projects by", 
+                         toTitleCase(str_replace_all(input$x, "_", " "))))
   })
   
   # Create a new data frame, grouping subset by partners------------------------
   output$wordcloud <- renderPlot({
+    
     partners.group <-
       lots.subset() %>%
-      pivot_longer(
-        cols = starts_with("partner"),
+      pivot_longer(cols = starts_with("partner"),
         names_to = "partner",
-        values_to = "partner.name"
-      ) %>%
+        values_to = "partner.name") %>%
       group_by(partner.name) %>%
       summarize(count.partners = n())
     
@@ -156,6 +164,7 @@ server <- function(input, output) {
   
   # Create a new data frame, grouping subset by year_implemented----------------
   output$lineplot <- renderPlot({
+    
     by.year <-
       lots.subset() %>%
       subset(year_implemented != "") %>%
@@ -179,7 +188,7 @@ server <- function(input, output) {
   })
   
   
-  # Generate file download ---------------------------------------------
+  # Generate file download -----------------------------------------------------
   output$download <- downloadHandler(
        filename = function() {
          paste('lots_to_love_data.csv')
@@ -189,5 +198,5 @@ server <- function(input, output) {
        })
 }
 
-# Run the application----------------------------------------------------
+# Run the application-----------------------------------------------------------
 shinyApp(ui = ui, server = server)
