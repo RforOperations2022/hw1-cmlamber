@@ -5,32 +5,38 @@ library(shinythemes)
 library(dplyr)
 library(stringr)
 library(tools)
+library(ggwordcloud)
 
 lots <- read.csv("lots_to_love_cleaned.csv")
 
 
-# Define UI for application that draws a histogram----------------------------
+# Define UI for application that draws a histogram------------------------------
 ui <- fluidPage(
   theme = shinythemes::shinytheme("cosmo"),
   
-  # Application title---------------------------------------------------------
-  titlePanel("Pittsburgh's Lots to Love Project"),
+  # Application title-----------------------------------------------------------
+  titlePanel("Allegheny County's Lots to Love Project"),
   
-  # Sidebar layout with input and output definitions--------------------------
+  # Sidebar layout with input and output definitions----------------------------
   sidebarLayout(
+    
     sidebarPanel(
       
+      # Conditional panel that only shows the x-axis input were applicable------
       conditionalPanel(
-        condition="input.tabs == 'Flex graph'",
+        condition="input.tabs == 'Bar Graph'",
         selectInput("x", "Choose a variable for the x axis:",
                   choices = c("Location" = "location",
+                              "Needs volunteers" = "need_volunteers",
                               "Project type" = "type", 
                               "Project stage" = "project_stage")),
+        
+        # Spacing---------------------------------------------------------------
         hr()),
       
-      
+      # Input: filter by location(s)--------------------------------------------
       selectInput(inputId = "filter",
-                           label = "Locations",
+                           label = "Filter by location(s)",
                            choices = c("Braddock", "Brentwood", "Carnegie", "Castle Shannon", 
                                        "Clairton", "Dormont", "East Pittsburgh", "Edgewood",
                                        "Etna", "Green Tree", "Homestead", "Indiana",
@@ -46,94 +52,119 @@ ui <- fluidPage(
                                         "Mount Oliver", "Pitcairn", "Pittsburgh", "Robinson", 
                                         "Ross", "Scott", "Scott/Carnegie", "Shaler", 
                                         "South Park", "Swissvale", "White Oak", "Wilkinsburg",
-                                        "Unknown"), multiple = TRUE
-
-      ),
+                                        "Unknown"), multiple = TRUE),
       
       hr(),
       
+      # Download button---------------------------------------------------------
       downloadButton(outputId = "download", label = "Download data"),
       
     ),
     
-    
+    # Output as tabs:-----------------------------------------------------------
     mainPanel(
       tabsetPanel(id = "tabs",
-        tabPanel("Flex graph", plotOutput(outputId = "flex_graph")),
-      
-        tabPanel("Project Types", plotOutput(outputId = "type_graph")),
-        tabPanel("Projects Implemented Over Time", plotOutput(outputId = "line_plot")),
+        tabPanel("Introduction", textOutput("intro.text")),
+        # Tab 1: show bar graph with flexible x-axis----------------------------
+        tabPanel("Bar Graph", plotOutput(outputId = "flexgraph")),
+        # Tab 2: show word cloud based on Partner data--------------------------
+        tabPanel("Partner Word Cloud", plotOutput(outputId = "wordcloud")),
+        # Tab 3: show line chart------------------------------------------------
+        tabPanel("Projects Implemented Over Time", plotOutput(outputId = "lineplot")),
+        # Tab 4: show data table------------------------------------------------
         tabPanel("Data Table", dataTableOutput(outputId = "table"))
-        #DT::dataTableOutput(outputId = "lotstable"),
-        #plot2: projects implemented over time
-        #plot3: projects by project stage
       )
     )
   )
 )
 
-# Define server logic required to draw a histogram
+# Define server logic-----------------------------------------------------------
 server <- function(input, output) {
   
-  #Create subset
-  lots_subset <- reactive({
+  # Create subset a subset of data filtering for location-----------------------
+  lots.subset <- reactive({
     req(input$filter) # ensure availablity of value before proceeding
     filter(lots, location %in% input$filter) })
   
-  aggregated <- reactive({
-      lots_subset() %>%
+  # Create reactive based on lots.subset for rendering bar graph----------------  
+  agg.subset <- reactive({
+      lots.subset() %>%
       group_by(across(all_of(input$x))) %>%
       summarize(count = n())
   })
 
-  output$flex_graph <- renderPlot({
-    ggplot(data = aggregated(), aes(y = count)) +
-      geom_bar(stat = "identity", aes_string(x = input$x)) +
-      theme(axis.text.x = element_text(angle = 45, hjust=1, size = 13))
+  output$intro.text <- renderText("Lots to Love is a guide for community 
+                                  organizations and residents who are 
+                                  interested in transforming vacant lots 
+                                  into well-loved spaces. This data includes 
+                                  vacant lot projects that are implemented, 
+                                  in progress, or just an idea. Residents can 
+                                  log their projects through Lots to Love and 
+                                  vacant lot project records include address, 
+                                  description, partners, stage of the project, 
+                                  and photos. The data source is the Western
+                                  Pennsylvania Regional Data Center 
+                                  (https://data.wprdc.org/dataset/lots-to-love).")
+  
+  
+  # Create a bar graph based on aggregated subset-------------------------------
+  output$flexgraph <- renderPlot({
+    ggplot(data = agg.subset(), aes(y = count)) +
+      geom_bar(stat = "identity", aes_string(x = input$x), fill = "cornflowerblue") +
+      theme(axis.text.x = element_text(angle = 45, hjust=1, size = 13)) + 
+      labs(x = toTitleCase(str_replace_all(input$x, "_", " ")), 
+                           y = "Number Of Projects")
   })
   
+  # Create a new data frame, grouping subset by partners------------------------
+  output$wordcloud <- renderPlot({
+    partners.group <-
+      lots.subset() %>%
+      group_by(partners) %>%
+      summarize(count.partners = n())
+    
+    # Create word cloud based on partners---------------------------------------
+    ggplot(partners.group, aes(label = partners, size = count.partners)) +
+      geom_text_wordcloud() +
+      theme_minimal() +
+      scale_size_area(max_size = 18)
+    
+  })
   
-  
-  output$line_plot <- renderPlot({
-    by_year <-
-      lots_subset() %>%
+  # Create a new data frame, grouping subset by year_implemented----------------
+  output$lineplot <- renderPlot({
+    by.year <-
+      lots.subset() %>%
       subset(year_implemented != "") %>%
       group_by(year_implemented) %>%
-      summarize(count = n())
+      summarize(year.count = n())
     
-    ggplot(data = by_year, aes(x = year_implemented, y = count)) +
+    # Create line chart based on year_implemented and project count-------------
+    ggplot(data = by.year, aes(x = year_implemented, y = year.count)) +
     geom_point() +
-    geom_line() +
     theme(axis.text.x = element_text(angle = 45, hjust=1)) +
-    labs(x = "Year implemented", y = "Number of projects implemented")
+    theme_bw() +
+    labs(x = "Year Implemented", y = "Number of Projects Implemented",
+         title = "Projects Implemented Over Time")
   })
   
-  output$type_graph <- renderPlot({
-    by_type <-
-      lots_subset() %>%
-      group_by(type) %>%
-      summarize(count = n()) 
-    
-    ggplot(data = by_type, aes(x = type, y = count)) +
-      geom_bar(stat = "identity") +
-      theme(axis.text.x = element_text(angle = 45, hjust=1))
-  })
-  
-  
+  # Render data table of lots.subset--------------------------------------------
   output$table <- DT::renderDataTable({
-    DT::datatable(data = lots_subset(),
+    DT::datatable(data = lots.subset()[,c(2,3,4,5,6,7,8,9,11,21,22)],
                   rownames = FALSE)
     
   })
   
+  
+  # Generate file download ---------------------------------------------
   output$download <- downloadHandler(
        filename = function() {
-         paste('lots_to_love_data-', Sys.Date(), '.csv', sep='')
+         paste('lots_to_love_data.csv')
        },
        content = function(con) {
-         write.csv(lots_subset(), con)
+         write.csv(lots.subset(), con)
        })
 }
 
-# Run the application 
+# Run the application----------------------------------------------------
 shinyApp(ui = ui, server = server)
