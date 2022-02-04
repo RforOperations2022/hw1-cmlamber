@@ -144,7 +144,7 @@ server <- function(input, output) {
     ggplot(partners.group, aes(label = partners, size = count.partners)) +
       geom_text_wordcloud() +
       theme_minimal() +
-      scale_size_area(max_size = 18)
+      scale_size_area(max_size = 16)
     
   })
   
