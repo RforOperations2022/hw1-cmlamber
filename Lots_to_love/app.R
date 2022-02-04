@@ -5,6 +5,7 @@ library(shinythemes)
 library(dplyr)
 library(stringr)
 library(tools)
+library(tidyr)
 library(ggwordcloud)
 
 lots <- read.csv("lots_to_love_cleaned.csv")
@@ -137,14 +138,19 @@ server <- function(input, output) {
   output$wordcloud <- renderPlot({
     partners.group <-
       lots.subset() %>%
-      group_by(partners) %>%
+      pivot_longer(
+        cols = starts_with("partner"),
+        names_to = "partner",
+        values_to = "partner.name"
+      ) %>%
+      group_by(partner.name) %>%
       summarize(count.partners = n())
     
     # Create word cloud based on partners---------------------------------------
-    ggplot(partners.group, aes(label = partners, size = count.partners)) +
+    ggplot(partners.group, aes(label = partner.name, size = count.partners)) +
       geom_text_wordcloud() +
       theme_minimal() +
-      scale_size_area(max_size = 16)
+      scale_size_area(max_size = 100)
     
   })
   
