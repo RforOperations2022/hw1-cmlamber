@@ -9,28 +9,27 @@ library(tools)
 lots <- read.csv("lots_to_love_cleaned.csv")
 
 
-# Define UI for application that draws a histogram
+# Define UI for application that draws a histogram----------------------------
 ui <- fluidPage(
+  theme = shinythemes::shinytheme("cosmo"),
   
-  # Application title
+  # Application title---------------------------------------------------------
   titlePanel("Pittsburgh's Lots to Love Project"),
   
-  # Sidebar with a slider input for number of bins 
+  # Sidebar layout with input and output definitions--------------------------
   sidebarLayout(
     sidebarPanel(
-
-     selectInput("x", "Choose a variable for the x:",
-                  choices = c("Location" = "location",
-                              "Project type" = "type")),
-      
-      hr(),
-      
-      checkboxInput(inputId = "display_locations",
-                   label = "Display and filter locations"),
       
       conditionalPanel(
-        condition = "input.display_locations == 1",
-        checkboxGroupInput(inputId = "filter",
+        condition="input.tabs == 'Flex graph'",
+        selectInput("x", "Choose a variable for the x axis:",
+                  choices = c("Location" = "location",
+                              "Project type" = "type", 
+                              "Project stage" = "project_stage")),
+        hr()),
+      
+      
+      selectInput(inputId = "filter",
                            label = "Locations",
                            choices = c("Braddock", "Brentwood", "Carnegie", "Castle Shannon", 
                                        "Clairton", "Dormont", "East Pittsburgh", "Edgewood",
@@ -41,14 +40,13 @@ ui <- fluidPage(
                                        "South Park", "Swissvale", "White Oak", "Wilkinsburg",
                                        "Unknown"),
                            selected = c("Braddock", "Brentwood", "Carnegie", "Castle Shannon", 
-                                        "Clairton", "Dormont", "East Pittsburgh", "Edgewood",
+                                       "Clairton", "Dormont", "East Pittsburgh", "Edgewood",
                                         "Etna", "Green Tree", "Homestead", "Indiana",
                                         "McKeesport", "Millvale", "Monroeville", "Moon",
                                         "Mount Oliver", "Pitcairn", "Pittsburgh", "Robinson", 
                                         "Ross", "Scott", "Scott/Carnegie", "Shaler", 
                                         "South Park", "Swissvale", "White Oak", "Wilkinsburg",
-                                        "Unknown")
-                           )
+                                        "Unknown"), multiple = TRUE
 
       ),
       
@@ -59,14 +57,13 @@ ui <- fluidPage(
     ),
     
     
-    #fill by project status?
-    
     mainPanel(
-      tabsetPanel(
+      tabsetPanel(id = "tabs",
         tabPanel("Flex graph", plotOutput(outputId = "flex_graph")),
+      
         tabPanel("Project Types", plotOutput(outputId = "type_graph")),
-        tabPanel("Over Time", plotOutput(outputId = "line_plot")),
-        tabPanel("Tables", dataTableOutput(outputId = "table"))
+        tabPanel("Projects Implemented Over Time", plotOutput(outputId = "line_plot")),
+        tabPanel("Data Table", dataTableOutput(outputId = "table"))
         #DT::dataTableOutput(outputId = "lotstable"),
         #plot2: projects implemented over time
         #plot3: projects by project stage
@@ -84,7 +81,7 @@ server <- function(input, output) {
     filter(lots, location %in% input$filter) })
   
   aggregated <- reactive({
-      lots %>%
+      lots_subset() %>%
       group_by(across(all_of(input$x))) %>%
       summarize(count = n())
   })
@@ -92,7 +89,7 @@ server <- function(input, output) {
   output$flex_graph <- renderPlot({
     ggplot(data = aggregated(), aes(y = count)) +
       geom_bar(stat = "identity", aes_string(x = input$x)) +
-      theme(axis.text.x = element_text(angle = 45, hjust=1))
+      theme(axis.text.x = element_text(angle = 45, hjust=1, size = 13))
   })
   
   
